@@ -96,7 +96,7 @@ class Pose {
   List<Widget> toWidgets() {
     List<Widget> widgets = List.empty(growable: true);
     for(var point in points) {
-      if(point.score < 0.2) {
+      if(point.score < 0.11) {
         continue;
       }
 
@@ -137,11 +137,17 @@ class MoveNetPoints {
 
   List<Widget> toWidgets() {
     List<Widget> widgets = List.empty(growable: true);
+    /*
+
     for(var pose in poses) {
       widgets.add(
           Stack(children: pose.toWidgets())
       );
     }
+    */
+    widgets.add(
+        Stack(children: poses[0].toWidgets())
+    );
     return widgets;
   }
 }
