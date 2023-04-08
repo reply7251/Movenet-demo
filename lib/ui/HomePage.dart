@@ -6,6 +6,8 @@ import 'package:movenet_demo/ui/MoveNetPointsView.dart';
 
 import '../tflite/MoveNetPoints.dart';
 
+import 'package:image/image.dart' as imglib;
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -18,7 +20,7 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   MoveNetPoints? points;
-
+  double? radio;
 
   @override
   Widget build(BuildContext context) {
@@ -34,19 +36,17 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  void resultCallback(List<List<List<double>>> result, int radioWidth, int radioHeight) {
-    /*for(var i = 0; i < 6; i++) {
-      for(var j = 0; j < 17; j++) {
-        result[0][i][j*3] *= radioWidth;
-        result[0][i][j*3+1] *= radioHeight;
-      }
-    }
-
-     */
+  void resultCallback(MoveNetCallbackData data) {
     //points = MoveNetPoints(result);
     setState(() {
-      points = MoveNetPoints(result);
+      points = MoveNetPoints(data);
     });
   }
 
+}
+
+class MoveNetCallbackData {
+  List<List<List<double>>> result;
+  double radio;
+  MoveNetCallbackData(this.result, this.radio);
 }

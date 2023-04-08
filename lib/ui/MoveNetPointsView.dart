@@ -5,7 +5,6 @@ import 'package:movenet_demo/tflite/MoveNetPoints.dart';
 
 class MoveNetPointsView extends StatefulWidget {
   final MoveNetPoints? points;
-
   const MoveNetPointsView({super.key, this.points});
 
   @override
@@ -19,9 +18,7 @@ class MoveNetPointsViewState extends State<MoveNetPointsView> {
     if(widget.points == null) {
       return Container();
     }
-    return Stack(
-        children: widget.points!.toWidgets()
-    );
+    return widget.points!.toWidget();
   }
 
 }

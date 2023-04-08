@@ -1,4 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+
+import '../ui/HomePage.dart';
+import 'package:image/image.dart' as imglib;
+import 'dart:ui' as ui;
+
+double threshold = 0.13;
 
 class Pose {
   List<Point> points = List.empty(growable: true);
@@ -93,63 +101,107 @@ class Pose {
     }
   }
 
-  List<Widget> toWidgets() {
-    List<Widget> widgets = List.empty(growable: true);
-    for(var point in points) {
-      if(point.score < 0.11) {
-        continue;
-      }
-
-      widgets.add(
-          Positioned(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Padding(padding:
-                    EdgeInsets.only(
-                      left: constraints.biggest.width * point.x,
-                      top: constraints.biggest.height * point.y
-                    ),
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(100)
-                      ),
-                    ),
-                  );
-                },
-              )
-          )
-      );
-    }
-    return widgets;
+  Widget toWidget() {
+    return LayoutBuilder(
+        builder: (context, constraints) {
+          return CustomPaint(
+            painter: PosePainter(this),
+            size: Size(constraints.biggest.width, constraints.biggest.height),
+          );
+        }
+    );
   }
 }
 
 class MoveNetPoints {
   List<Pose> poses = List.empty(growable: true);
-  MoveNetPoints(List<List<List<double>>> points) {
-    for(var i = 0; i < 6; i++) {
-      poses.add(Pose(points[0][i]));
-    }
+  MoveNetCallbackData data;
+
+  MoveNetPoints(this.data) {
+    poses.addAll(data.result[0].map((e) => Pose(e)));
   }
 
-  List<Widget> toWidgets() {
-    List<Widget> widgets = List.empty(growable: true);
-    /*
+  Widget toWidget() {
+    List<Widget> children = [];
 
-    for(var pose in poses) {
-      widgets.add(
-          Stack(children: pose.toWidgets())
-      );
-    }
-    */
-    widgets.add(
-        Stack(children: poses[0].toWidgets())
+    children.addAll(poses.map((x) => x.toWidget()));
+
+    return Stack(
+      children: children,
     );
-    return widgets;
   }
+}
+
+class PosePainter extends CustomPainter{
+  Pose pose;
+  Paint linePaint = Paint();
+  Paint dotPaint = Paint();
+
+  Canvas? canvas;
+  Size? size;
+
+  PosePainter(this.pose) {
+    linePaint.color = Colors.blue;
+    linePaint.strokeWidth = 3;
+    dotPaint.color = Colors.green;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    this.canvas = canvas;
+    this.size = size;
+
+    line(pose.nose, pose.leftEye);
+    line(pose.leftEye, pose.leftEar);
+    line(pose.nose, pose.rightEye);
+    line(pose.rightEye, pose.rightEar);
+
+    line(pose.leftShoulder, pose.rightShoulder);
+    line(pose.leftShoulder, pose.leftElbow);
+    line(pose.leftElbow, pose.leftWrist);
+    line(pose.rightShoulder, pose.rightElbow);
+    line(pose.rightElbow, pose.rightWrist);
+
+    line(pose.leftShoulder, pose.leftHip);
+    line(pose.rightShoulder, pose.rightHip);
+    line(pose.leftHip, pose.rightHip);
+
+    line(pose.leftHip, pose.leftKnee);
+    line(pose.leftKnee, pose.leftAnkle);
+    line(pose.rightHip, pose.rightKnee);
+    line(pose.rightKnee, pose.rightAnkle);
+
+    for(var point in pose.points) {
+      dot(point);
+    }
+
+    this.canvas = null;
+    this.size = null;
+  }
+
+  void dot(Point p) {
+    if(p.score < threshold) {
+      return;
+    }
+    canvas?.drawCircle(point2Offset(p), 5, dotPaint);
+  }
+
+  void line(Point p1, Point p2) {
+    if(p1.score < threshold || p2.score < threshold) {
+      return;
+    }
+    canvas?.drawLine(point2Offset(p1), point2Offset(p2), linePaint);
+  }
+
+  Offset point2Offset(Point p) {
+    return Offset(p.x * size!.width, p.y * size!.height);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+
 }
 
 class Point {

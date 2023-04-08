@@ -10,13 +10,14 @@ import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:movenet_demo/tflite/TFLitePatch.dart';
+import 'package:movenet_demo/ui/HomePage.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tflite;
 import 'package:image/image.dart' as imglib;
 import 'package:synchronized/synchronized.dart';
 
 class CameraView extends StatefulWidget {
-  final Function(List<List<List<double>>>, int, int) moveNetCallback;
+  final Function(MoveNetCallbackData) moveNetCallback;
 
   const CameraView({super.key, required this.moveNetCallback});
 
@@ -104,10 +105,12 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver{
       setState(() {
         isDetecting = true;
       });
-      var rgb = await convertImage(image);
-      if(rgb == null) {
+      var fullImage = await convertImage(image);
+      if(fullImage == null) {
         return;
       }
+      var rgb = imglib.copyResize(fullImage, width: resizeWidth, height: resizeHeight);
+
       List<List<List<List<int>>>> input = List.generate(1,
               (_) => List.generate(rgb.height,
                       (_) => List.generate(rgb.width,
@@ -140,7 +143,8 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver{
         );
         return output;
       }, IsolateData(input, interpreter!.address));
-      widget.moveNetCallback(result, radioWidth!, radioHeight!);
+
+      widget.moveNetCallback(MoveNetCallbackData(result, controller!.value.aspectRatio));
       //print(output);
       //widget.moveNetCallback(output, radioWidth!, radioHeight!);
       setState(() {
@@ -164,12 +168,12 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver{
       //print("uvPixelStride: " + uvPixelStride.toString());
 
       // imgLib -> Image package from https://pub.dartlang.org/packages/image
-      var result = imglib.Image(width: croppedWidth, height: croppedHeight);//img.Image(width, height); // Create Image buffer
+      var result = imglib.Image(width: originalWidth, height: originalHeight);//img.Image(width, height); // Create Image buffer
       // Fill image buffer with plane[0] from YUV420_888
-      for (int x = 0; x < croppedWidth; x++) {
-        for (int y = 0; y < croppedHeight; y++) {
-          final int uvIndex = uvPixelStride! * ((x+croppedLeft) / 2).floor() + uvRowStride * ((y+croppedTop) / 2).floor();
-          final int index = (y+croppedTop) * originalWidth + (x+croppedLeft);
+      for (int x = 0; x < originalWidth; x++) {
+        for (int y = 0; y < originalHeight; y++) {
+          final int uvIndex = uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
+          final int index = y * originalWidth + x;
 
           final yp = cameraImage.planes[0].bytes[index];
           final up = cameraImage.planes[1].bytes[uvIndex];
@@ -180,14 +184,14 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver{
           int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
           // color: 0x FF  FF  FF  FF
           //           A   B   G   R
-          if (result.isBoundsSafe(x, croppedHeight-y)){
-            result.setPixelRgba(x, croppedHeight-y, r , g ,b ,shift);
+          if (result.isBoundsSafe(x, originalHeight-y)){
+            result.setPixelRgba(x, originalHeight-y, r , g ,b ,shift);
           }
         }
       }
       radioWidth = originalWidth;
       radioHeight = originalHeight;
-      return imglib.copyResize(result, width: resizeWidth, height: resizeHeight);
+      return result;
       //imglib.PngEncoder pngEncoder = imglib.PngEncoder(level: 0, filter: imglib.PngFilter.none);
       //Uint8List png = pngEncoder.encode(result);
       //return Image.memory(png);
