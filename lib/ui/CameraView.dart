@@ -9,6 +9,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:movenet_demo/tflite/TFLitePatch.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tflite;
 import 'package:image/image.dart' as imglib;
@@ -132,7 +133,11 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver{
                     (_) => List.generate(56,  (_)=>30.0 )
             )
         );
-        Interpreter.fromAddress(isolateData.interpreterAddress).run(isolateData.input, output);
+        Patch.run(
+            Interpreter.fromAddress(isolateData.interpreterAddress),
+            isolateData.input,
+            output
+        );
         return output;
       }, IsolateData(input, interpreter!.address));
       widget.moveNetCallback(result, radioWidth!, radioHeight!);
